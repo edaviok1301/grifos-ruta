@@ -1,0 +1,60 @@
+name: Actualizar precios y publicar
+
+on:
+  # Cada vez que subes cambios al repositorio
+  push:
+    branches: [main]
+  # Automático: 6:00, 10:00, 14:00 y 18:00 hora de Lima (UTC-5)
+  schedule:
+    - cron: "0 11,15,19,23 * * *"
+  # Manual: botón "Run workflow" en la pestaña Actions
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Descargar ruta y precios de Facilito
+        id: build
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: node scripts/build.mjs
+
+      - name: Guardar los datos nuevos en el repositorio
+        if: github.event_name != 'push' && steps.build.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || (git commit -m "Precios actualizados $(TZ=America/Lima date '+%Y-%m-%d %H:%M')" && git push)
+
+      - name: Avisar si Facilito no respondió
+        if: steps.build.outcome == 'failure'
+        run: echo "::warning::No se pudieron descargar los precios. Se publica con los datos anteriores."
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

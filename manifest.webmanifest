@@ -1,0 +1,10 @@
+{
+  "name": "Grifos en ruta",
+  "short_name": "Grifos",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0A6647",
+  "theme_color": "#0A6647",
+  "lang": "es-PE"
+}

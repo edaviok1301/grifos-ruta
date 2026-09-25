@@ -1,0 +1,23 @@
+{
+  "route": {
+    "id": "lima-ica",
+    "name": "Lima – Ica",
+    "origin": { "label": "Lima", "lat": -12.141672653292703, "lng": -77.00370534377494 },
+    "destination": { "label": "Ica", "lat": -14.035742, "lng": -75.70492 }
+  },
+  "provinces": [
+    { "name": "Lima", "departamento": "150000", "provincia": "150100" },
+    { "name": "Cañete", "departamento": "150000", "provincia": "150500" },
+    { "name": "Chincha", "departamento": "110000", "provincia": "110200" },
+    { "name": "Pisco", "departamento": "110000", "provincia": "110500" },
+    { "name": "Ica", "departamento": "110000", "provincia": "110100" }
+  ],
+  "products": { "127": "P", "126": "R", "40": "D" },
+  "maxDistanceMeters": 700,
+  "towns": [
+    ["Lima", -12.148, -77.015], ["Lurín", -12.275, -76.87], ["Pucusana", -12.48, -76.79],
+    ["Chilca", -12.52, -76.74], ["Mala", -12.66, -76.63], ["Asia", -12.78, -76.56],
+    ["Cerro Azul", -13.03, -76.48], ["Cañete", -13.077, -76.387], ["Chincha", -13.418, -76.133],
+    ["Pisco", -13.71, -76.2], ["Paracas", -13.84, -76.25], ["Ica", -14.068, -75.726]
+  ]
+}
