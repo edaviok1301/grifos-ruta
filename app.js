@@ -336,7 +336,7 @@ function watchRefresh() {
     }
     const left = Math.max(0, ETA[1] - min);
     $("refresh").hidden = false;
-    $("refresh").innerHTML = `<b>Actualizando precios…</b> Si aún no lo hiciste, en GitHub toca <b>Submit new issue</b>. Suele tardar ${ETA[0]} a ${ETA[1]} min: van ${Math.floor(min)}:${String(Math.floor((min % 1) * 60)).padStart(2, "0")}${left > 0 ? `, faltan ~${Math.ceil(left)} min` : ", ya casi"}. <button type="button" id="cancelRefresh">Dejar de esperar</button>`;
+    $("refresh").innerHTML = `<b>Actualizando precios…</b> Si aún no lo hiciste, en GitHub toca <b>Create</b>. Suele tardar ${ETA[0]} a ${ETA[1]} min: van ${Math.floor(min)}:${String(Math.floor((min % 1) * 60)).padStart(2, "0")}${left > 0 ? `, faltan ~${Math.ceil(left)} min` : ", ya casi"}. <button type="button" id="cancelRefresh">Dejar de esperar</button>`;
     try {
       const meta = await (await fetch("data/meta.json?v=" + Date.now())).json();
       if (+new Date(meta.updatedAt) > p.at - 6e4) {

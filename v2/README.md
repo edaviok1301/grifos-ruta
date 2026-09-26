@@ -7,7 +7,7 @@ Página: `https://TU_USUARIO.github.io/grifos-ruta/v2/`. La v1 (Lima – Ica) si
 1. **Precios de todo el Perú, cada madrugada.** La Action "v2: Actualizar precios" baja a las 3:00 h (Lima) los grifos y precios de las 196 provincias de Facilito y los guarda en `v2/data/precios.json`. Tarda unos 10 minutos.
 2. **Tú eliges A y B.** Por nombre (búsqueda de OpenStreetMap), tocando el mapa o con tu ubicación. Al tocar **Calcular ruta**, la página pide la ruta de ida y la de vuelta (OSRM) y calcula ahí mismo, en unos segundos, qué grifos están en tu sentido, cuáles por confirmar y cuáles del otro lado. No se guarda nada en GitHub.
 3. **Antigüedad de los precios.** Arriba se ve de cuándo son los precios de las provincias por donde pasa tu ruta.
-4. **Actualizar precios de esta ruta.** El botón abre un formulario de GitHub ya lleno con esas provincias: tocas **Submit new issue** y vuelves a la página. La Action baja solo esas provincias, publica y cierra el formulario. La página muestra el tiempo que va (suele tardar 3 a 5 min) y se actualiza sola al terminar.
+4. **Actualizar precios de esta ruta.** El botón abre un formulario de GitHub ya lleno con esas provincias: tocas **Create** y vuelves a la página. La Action baja solo esas provincias, publica y cierra el formulario. La página muestra el tiempo que va (suele tardar 3 a 5 min) y se actualiza sola al terminar.
 
 Solo el dueño del repo puede disparar la actualización con el formulario; si otra persona abre uno, la Action no hace nada.
 
