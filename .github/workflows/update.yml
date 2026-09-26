@@ -9,11 +9,15 @@ on:
     - cron: "0 11,15,19,23 * * *"
   # Manual: botón "Run workflow" en la pestaña Actions
   workflow_dispatch:
+  # Botón "Actualizar precios" de la página: abre un formulario "[v1] Actualizar precios"
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: pages
@@ -21,6 +25,10 @@ concurrency:
 
 jobs:
   publicar:
+    # Solo formularios de v1 abiertos por el dueño del repo
+    if: >-
+      github.event_name != 'issues' ||
+      (startsWith(github.event.issue.title, '[v1]') && github.event.issue.user.login == github.repository_owner)
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -44,7 +52,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
-          git diff --cached --quiet || (git commit -m "Precios actualizados $(TZ=America/Lima date '+%Y-%m-%d %H:%M')" && git push)
+          git diff --cached --quiet || (git commit -m "Precios actualizados $(TZ=America/Lima date '+%Y-%m-%d %H:%M')" && git pull --rebase && git push)
 
       - name: Avisar si Facilito no respondió
         if: steps.build.outcome == 'failure'
@@ -58,3 +66,10 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Cerrar el formulario
+        if: always() && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULTADO: ${{ steps.build.outcome == 'success' && 'Precios actualizados y publicados. Vuelve a la página.' || 'Facilito no respondió; la página sigue con los precios anteriores. Revisa el log de la Action.' }}
+        run: gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --comment "$RESULTADO"

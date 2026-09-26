@@ -298,12 +298,57 @@ function stamp() {
   const hours = (Date.now() - d) / 36e5;
   $("stamp").textContent = `Precios de Facilito (Osinergmin) del ${txt}` + (hours > 30 ? ` · tienen más de ${Math.floor(hours / 24) || 1} día(s), actualízalos` : "");
   $("stamp").classList.toggle("stale", hours > 30);
-  // Botón que lleva a la Action del repo (solo en GitHub Pages)
+  // Botón que abre el formulario de GitHub que dispara la Action (solo en GitHub Pages)
+  const gh = repoInfo(), b = $("updateBtn");
+  b.hidden = !gh || !!pending();
+  if (gh) b.href = `https://github.com/${gh.user}/${gh.repo}/issues/new?template=v1-precios.yml&title=${encodeURIComponent("[v1] Actualizar precios")}`;
+}
+function repoInfo() {
   const h = location.hostname;
-  if (h.endsWith("github.io")) {
-    const user = h.split(".")[0], repo = location.pathname.split("/").filter(Boolean)[0] || `${user}.github.io`;
-    const b = $("updateBtn"); b.href = `https://github.com/${user}/${repo}/actions/workflows/update.yml`; b.hidden = false;
-  }
+  if (!h.endsWith("github.io")) return null;
+  const user = h.split(".")[0], repo = location.pathname.split("/").filter(Boolean)[0] || `${user}.github.io`;
+  return { user, repo };
+}
+
+/* ---------- "Actualizar precios" en curso ----------
+   Mientras la Action trabaja se consulta data/meta.json cada 20 s hasta que tenga fecha nueva. */
+const ETA = [2, 3], GIVEUP = 12; // min
+const PKEY = "grifos-ruta:pending";
+function pending() { try { return JSON.parse(localStorage.getItem(PKEY) || "null"); } catch { return null; } }
+function setPending(v) { try { v ? localStorage.setItem(PKEY, JSON.stringify(v)) : localStorage.removeItem(PKEY); } catch {} }
+let pollTimer = null;
+async function loadData(v) {
+  const [st, meta] = await Promise.all(["data/stations.json", "data/meta.json"].map((f) => fetch(f + v).then((r) => { if (!r.ok) throw new Error(f); return r.json(); })));
+  st.forEach((s) => { s.id = String(s.id); s.name = title(s.name); s.addr = title(s.addr); });
+  STATIONS = st; META = meta;
+}
+function watchRefresh() {
+  clearInterval(pollTimer);
+  const p = pending();
+  if (!p) { $("refresh").hidden = true; return; }
+  const tick = async () => {
+    const min = (Date.now() - p.at) / 6e4;
+    if (min > GIVEUP) {
+      setPending(null); clearInterval(pollTimer);
+      const gh = repoInfo();
+      $("refresh").innerHTML = `La actualización no terminó en ${GIVEUP} min. ${gh ? `<a href="https://github.com/${gh.user}/${gh.repo}/actions" target="_blank" rel="noopener">Revisa la Action</a> o vuelve a intentarlo.` : ""}`;
+      stamp(); return;
+    }
+    const left = Math.max(0, ETA[1] - min);
+    $("refresh").hidden = false;
+    $("refresh").innerHTML = `<b>Actualizando precios…</b> Si aún no lo hiciste, en GitHub toca <b>Submit new issue</b>. Suele tardar ${ETA[0]} a ${ETA[1]} min: van ${Math.floor(min)}:${String(Math.floor((min % 1) * 60)).padStart(2, "0")}${left > 0 ? `, faltan ~${Math.ceil(left)} min` : ", ya casi"}. <button type="button" id="cancelRefresh">Dejar de esperar</button>`;
+    try {
+      const meta = await (await fetch("data/meta.json?v=" + Date.now())).json();
+      if (+new Date(meta.updatedAt) > p.at - 6e4) {
+        setPending(null); clearInterval(pollTimer);
+        await loadData("?v=" + Date.now());
+        stamp(); render();
+        $("refresh").innerHTML = `<b>Precios actualizados.</b>`;
+        setTimeout(() => { $("refresh").hidden = true; }, 8000);
+      }
+    } catch {}
+  };
+  tick(); pollTimer = setInterval(tick, 20000);
 }
 
 async function main() {
@@ -318,6 +363,9 @@ async function main() {
   $("dir").options[0].text = `Ida: ${CFG.route.origin.label} → ${CFG.route.destination.label}`;
   $("dir").options[1].text = `Vuelta: ${CFG.route.destination.label} → ${CFG.route.origin.label}`;
   stamp(); initMap(); bind(); render(); fitRoute();
+  $("updateBtn").addEventListener("click", () => { setPending({ at: Date.now() }); $("updateBtn").hidden = true; watchRefresh(); });
+  document.addEventListener("click", (e) => { if (e.target.id === "cancelRefresh") { setPending(null); watchRefresh(); stamp(); } });
+  watchRefresh();
 }
 main().catch((e) => { $("stamp").textContent = "No se pudieron cargar los datos (" + e.message + "). Revisa que la carpeta data/ esté en el repositorio."; console.error(e); });
 })();

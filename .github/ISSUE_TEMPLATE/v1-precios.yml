@@ -1,0 +1,7 @@
+name: "v1: Actualizar precios Lima – Ica"
+description: Lo abre el botón "Actualizar precios" de la página v1. Solo toca "Submit new issue".
+title: "[v1] Actualizar precios"
+body:
+  - type: markdown
+    attributes:
+      value: "Toca **Submit new issue** y vuelve a la página: en 2 a 3 minutos tendrá los precios nuevos."
