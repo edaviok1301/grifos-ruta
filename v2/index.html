@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!-- Sin la "/" final (…/v2) los archivos se buscarían en la carpeta de v1 -->
+<script>if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A6647">
+<title>Grifos en ruta v2</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Overpass+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="sign">
+    <div class="eyebrow"><span id="routeName">Cualquier ruta del Perú</span> · v2</div>
+    <h1>¿Dónde conviene cargar?</h1>
+    <p id="stamp">Cargando precios…</p>
+    <div class="signbar">
+      <a class="signbtn" id="updateBtn" href="#" target="_blank" rel="noopener" hidden>Actualizar precios de esta ruta</a>
+      <a class="signbtn ghost" href="../">Ir a v1 (Lima – Ica)</a>
+    </div>
+  </header>
+
+  <div class="refresh" id="refresh" hidden></div>
+
+  <!-- Punto A y punto B -->
+  <section class="trip">
+    <div class="pt">
+      <label for="aTxt">Punto A · salida</label>
+      <div class="ptrow">
+        <input id="aTxt" type="search" placeholder="Ej. Miraflores, Lima" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="ptbtn" data-find="a">Buscar</button>
+      </div>
+      <div class="ptalt"><button type="button" class="lnk" id="aGps">Usar mi ubicación</button><button type="button" class="lnk" data-pick="a">Elegir en el mapa</button></div>
+      <div class="results" id="aRes"></div>
+    </div>
+    <button type="button" class="swap" id="swapAB" title="Intercambiar A y B" aria-label="Intercambiar A y B">⇅</button>
+    <div class="pt">
+      <label for="bTxt">Punto B · destino</label>
+      <div class="ptrow">
+        <input id="bTxt" type="search" placeholder="Ej. Huacachina, Ica" autocomplete="off" enterkeyhint="search">
+        <button type="button" class="ptbtn" data-find="b">Buscar</button>
+      </div>
+      <div class="ptalt"><button type="button" class="lnk" data-pick="b">Elegir en el mapa</button></div>
+      <div class="results" id="bRes"></div>
+    </div>
+    <div class="tripgo">
+      <button type="button" class="gpsbtn" id="calcBtn">Calcular ruta</button>
+      <span class="gpsstate" id="tripMsg"></span>
+    </div>
+  </section>
+
+  <form class="controls needroute" id="f" onsubmit="return false" hidden>
+    <div class="field"><label for="dir">Viaje</label>
+      <select id="dir"><option value="S">Ida</option><option value="N">Vuelta</option></select></div>
+    <div class="field"><label for="fuel">Combustible</label>
+      <select id="fuel"><option value="P">Gasohol Premium</option><option value="R">Gasohol Regular</option><option value="D">Diésel DB5</option></select></div>
+    <div class="field"><label for="tank">Galones a cargar</label><input id="tank" type="number" min="1" max="40" step="1" value="10"></div>
+    <div class="field"><label for="horizon">Buscar el más barato en</label>
+      <select id="horizon"><option value="30">Próximos 30 km</option><option value="60" selected>Próximos 60 km</option><option value="100">Próximos 100 km</option><option value="9999">Todo lo que falta</option></select></div>
+  </form>
+
+  <!-- Dónde estoy -->
+  <section class="now needroute" id="now" hidden>
+    <div class="nowhead">
+      <button type="button" class="gpsbtn" id="gpsBtn">Activar GPS</button>
+      <span class="gpsstate" id="gpsState">Sin ubicación. Activa el GPS o indica el km.</span>
+    </div>
+    <div class="manual">
+      <label for="manualKm">O indica por dónde vas:</label>
+      <input type="range" id="manualKm" min="0" max="290" step="1" value="0">
+      <output id="manualOut" class="num">km 0</output>
+    </div>
+    <label class="chk"><input type="checkbox" id="notify"> <span id="notifyTxt">Avisarme al acercarme al más barato</span></label>
+    <div class="nextgrid" id="nextGrid"></div>
+    <div class="dirwarn" id="dirWarn" hidden></div>
+  </section>
+
+  <section class="section">
+    <div class="pickmsg" id="pickMsg" hidden></div>
+    <div class="mapbox">
+      <div id="map" aria-label="Mapa de la ruta con los grifos"></div>
+      <div class="mapctl"><button type="button" id="followBtn" aria-pressed="true" title="Seguir mi ubicación">◎</button><button type="button" id="fitBtn" title="Ver toda la ruta">⤢</button></div>
+    </div>
+    <div class="legend needroute" hidden>
+      <span><i class="dot good"></i>Cargar aquí</span><span><i class="dot mid"></i>Precio medio</span><span><i class="dot bad"></i>Evitar</span><span><i class="dot chk"></i>Por confirmar</span><span><i class="dot opp"></i>Otro sentido</span>
+    </div>
+  </section>
+
+  <section class="section needroute" id="stopsSec" hidden>
+    <h2>Paradas sugeridas: solo grifos de tu sentido</h2>
+    <div class="stops" id="stops"></div>
+    <div class="summary" id="summary"></div>
+  </section>
+
+  <section class="section needroute" hidden>
+    <h2 id="listTitle">En tu sentido</h2>
+    <p class="note" id="listNote"></p>
+    <label class="chk"><input type="checkbox" id="hidePassed" checked> Ocultar los que ya pasé</label>
+    <div class="list" id="list"></div>
+  </section>
+
+  <details class="section fold needroute" hidden>
+    <summary><h2 id="chkTitle">Por confirmar</h2></summary>
+    <p class="note">La ubicación registrada no deja claro de qué lado están, o están en calles de ciudad donde quizá puedas girar a la izquierda. Míralos en Google Maps antes de contar con ellos.</p>
+    <div class="list" id="chkList"></div>
+  </details>
+
+  <details class="section fold needroute" hidden>
+    <summary><h2 id="oppTitle">Del otro sentido</h2></summary>
+    <p class="note">Están en la calzada contraria de la autopista. Para entrar tendrías que seguir hasta un retorno, dar la vuelta y regresar, así que no se usan en las sugerencias.</p>
+    <div class="list" id="oppList"></div>
+  </details>
+
+  <p class="note">"Km" es la distancia recorrida desde el punto A (o desde B en la vuelta), no el hito de la carretera. Un grifo es "de tu sentido" cuando está a tu derecha y más cerca de tu calzada que de la contraria, según la ubicación que registró en Osinergmin. Precios en soles por galón tomados de <a href="https://www.facilito.gob.pe/facilito/pages/facilito/buscadorEESS.jsp" target="_blank" rel="noopener">Facilito de Osinergmin</a>; cada grifo los reporta y pueden cambiar durante el día. Todo el Perú se actualiza cada madrugada; con «Actualizar precios de esta ruta» se actualizan solo sus provincias. Mapa y búsqueda © colaboradores de OpenStreetMap (Nominatim). Ruta calculada con OSRM.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

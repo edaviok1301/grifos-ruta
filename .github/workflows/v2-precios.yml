@@ -1,0 +1,81 @@
+name: "v2: Actualizar precios"
+
+on:
+  # De madrugada: todo el Perú (3:00 h de Lima, UTC-5). Tarda ~10 min.
+  schedule:
+    - cron: "0 8 * * *"
+  # Botón "Actualizar precios" de la página v2: abre un formulario con las provincias de la ruta
+  issues:
+    types: [opened]
+  # Manual desde la pestaña Actions; sin provincias = todo el Perú
+  workflow_dispatch:
+    inputs:
+      provincias:
+        description: "Códigos INEI separados por coma (vacío = todo el Perú)"
+        required: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write
+
+# Mismo grupo que la Action de v1: nunca publican ni guardan datos al mismo tiempo
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  precios:
+    # Solo formularios de v2 abiertos por el dueño del repo
+    if: >-
+      github.event_name != 'issues' ||
+      (startsWith(github.event.issue.title, '[v2]') && github.event.issue.user.login == github.repository_owner)
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Descargar precios de Facilito
+        id: build
+        continue-on-error: true
+        env:
+          # El script solo toma códigos de 6 dígitos que existan en v2/provincias.json
+          PROVINCIAS: ${{ github.event.issue.body || github.event.inputs.provincias }}
+        run: node scripts/v2/precios.mjs
+
+      - name: Guardar los datos nuevos en el repositorio
+        if: steps.build.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2/data
+          git diff --cached --quiet && exit 0
+          git commit -m "v2: precios actualizados $(TZ=America/Lima date '+%Y-%m-%d %H:%M')"
+          git pull --rebase && git push
+
+      - name: Avisar si Facilito no respondió
+        if: steps.build.outcome == 'failure'
+        run: echo "::warning::No se pudieron descargar los precios. Se publica con los datos anteriores."
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Cerrar el formulario
+        if: always() && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULTADO: ${{ steps.build.outcome == 'success' && 'Precios actualizados y publicados. Vuelve a la página v2.' || 'Facilito no respondió; la página sigue con los precios anteriores. Revisa el log de la Action.' }}
+        run: gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --comment "$RESULTADO"

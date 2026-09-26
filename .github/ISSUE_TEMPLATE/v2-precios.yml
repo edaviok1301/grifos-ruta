@@ -1,0 +1,18 @@
+name: "v2: Actualizar precios de una ruta"
+description: Lo abre el botón "Actualizar precios" de la página v2. Solo toca "Submit new issue".
+title: "[v2] Actualizar precios"
+body:
+  - type: markdown
+    attributes:
+      value: "La página v2 ya llenó los datos. Toca **Submit new issue** y vuelve a la página: en 3 a 5 minutos tendrá los precios nuevos."
+  - type: input
+    id: ruta
+    attributes:
+      label: Ruta
+  - type: input
+    id: provincias
+    attributes:
+      label: Provincias
+      description: Códigos INEI de las provincias por donde pasa la ruta, separados por coma.
+    validations:
+      required: true
